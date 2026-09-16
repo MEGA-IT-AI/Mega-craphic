@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مطعم دهب | Dahab Restaurant</title>
+
+    <!-- PWA & Mobile App Integration -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#d4af37">
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker Registered!', reg))
+            .catch(err => console.error('Service Worker Registration Failed!', err));
+        });
+      }
+    </script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Cairo) -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #d4af37; /* ذهبي */
+            --primary-hover: #b89628;
+            --dark-color: #1a1a1a;
+            --card-bg: #242424;
+            --light-text: #f5f5f5;
+            --muted-text: #b3b3b3;
+            --accent-green: #27ae60;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--dark-color);
+            color: var(--light-text);
+            line-height: 1.6;
+        }
+
+        /* Loading & Welcome Overlay */
+        .loader-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background-color: rgba(13, 13, 13, 0.98);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            pointer-events: auto;
+            transition: opacity 0.5s ease, visibility 0.5s ease;
+        }
+
+        .loader-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .loader-content {
+            text-align: center;
+            max-width: 450px;
+            padding: 20px;
+        }
+
+        .loader-logo {
+            font-size: 55px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .loader-welcome-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--light-text);
+            margin-bottom: 8px;
+        }
+
+        .loader-welcome-text {
+            color: var(--primary-color);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 25px;
+        }
+
+        .loader-spinner {
+            width: 70px;
+            height: 70px;
+            border: 5px solid rgba(212, 175, 55, 0.2);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #242424;
+            height: 10px;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid #333;
+            margin-bottom: 12px;
+        }
+
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color), #f39c12);
+            transition: width 0.05s linear;
+        }
+
+        .loader-counter {
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--light-text);
+        }
+
+        /* Header / Navbar */
+        header {
+            background-color: rgba(26, 26, 26, 0.95);
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 25px;
+        }
+
+        .nav-links a {
+            color: var(--light-text);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 17px;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .contact-btn {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            padding: 8px 18px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .contact-btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .online-btn {
+            background-color: var(--accent-green);
+            color: #ffffff;
+            padding: 8px 18px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 700;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .online-btn:hover {
+            background-color: #219150;
+        }
+
+        /* Hero Section */
+        .hero {
+            height: 75vh;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url('https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=1200') center/cover no-repeat;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 20px;
+            margin-top: 70px;
+        }
+
+        .hero h1 {
+            font-size: 50px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .hero p {
+            font-size: 22px;
+            max-width: 600px;
+            margin-bottom: 30px;
+        }
+
+        .hero .hero-btns {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .hero .cta-btn {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: 700;
+            border-radius: 30px;
+            text-decoration: none;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .hero .cta-btn-online {
+            background-color: var(--accent-green);
+            color: #fff;
+            padding: 12px 30px;
+            font-size: 18px;
+            font-weight: 700;
+            border-radius: 30px;
+            text-decoration: none;
+            transition: transform 0.3s, background 0.3s;
+        }
+
+        .hero .cta-btn:hover, .hero .cta-btn-online:hover {
+            transform: scale(1.05);
+        }
+
+        /* Menu Section */
+        .menu-section {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 36px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--muted-text);
+            margin-bottom: 40px;
+        }
+
+        .category-title {
+            font-size: 28px;
+            color: var(--light-text);
+            border-right: 4px solid var(--primary-color);
+            padding-right: 15px;
+            margin: 40px 0 25px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid #333;
+        }
+
+        .card:hover {
+            transform: translateY(-7px);
+            box-shadow: 0 8px 25px rgba(212, 175, 55, 0.2);
+        }
+
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .card-content {
+            padding: 20px;
+        }
+
+        .card-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .card-desc {
+            color: var(--muted-text);
+            font-size: 14px;
+        }
+
+        /* Features / Why Us */
+        .features {
+            background-color: #121212;
+            padding: 60px 20px;
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            text-align: center;
+        }
+
+        .feature-box {
+            padding: 30px;
+            background-color: var(--card-bg);
+            border-radius: 10px;
+        }
+
+        .feature-box i {
+            font-size: 40px;
+            color: var(--primary-color);
+            margin-bottom: 15px;
+        }
+
+        .feature-box h3 {
+            margin-bottom: 10px;
+        }
+
+        /* Footer Styles */
+        footer {
+            background-color: #0d0d0d;
+            border-top: 1px solid #333;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            color: var(--muted-text);
+            font-size: 14px;
+        }
+
+        .footer-credits {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-credits img {
+            height: 30px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .footer-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background-color: #242424;
+            color: var(--light-text);
+            text-decoration: none;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .footer-btn:hover {
+            background-color: var(--primary-color);
+            color: var(--dark-color);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+            .hero h1 {
+                font-size: 36px;
+            }
+            .hero p {
+                font-size: 18px;
+            }
+            footer {
+                flex-direction: column;
+                text-align: center;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading & Welcome Overlay -->
+    <div class="loader-overlay" id="loaderOverlay">
+        <div class="loader-content">
+            <div class="loader-logo">
+                <i class="fa-solid fa-crown"></i>
+            </div>
+            <h2 class="loader-welcome-title">أهلاً بك في مطعم دهب</h2>
+            <p class="loader-welcome-text" id="loaderSubtext">جاري إعداد أشهى الأطباق لك...</p>
+            
+            <div class="loader-spinner"></div>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="loader-counter"><span id="counter">1</span>%</div>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header>
+        <div class="nav-container">
+            <!-- أيقونة وشعار الرئيسية توجه إلى index.html -->
+            <a href="index.html" class="logo btn-loader-trigger" data-target="index.html" data-text="جاري العودة للصفحة الرئيسية...">
+                <i class="fa-solid fa-crown"></i> مطعم دهب
+            </a>
+            <ul class="nav-links">
+                <!-- رابط الرئيسية في أعلى الصفحة يوجه إلى index.html -->
+                <li><a href="index.html" class="btn-loader-trigger" data-target="index.html" data-text="جاري تحضير الصفحة الرئيسية...">الرئيسية</a></li>
+                <li><a href="home2.html" class="btn-loader-trigger" data-target="home2.html" data-text="جاري فتح صفحة الطلبات أونلاين...">طلبات أونلاين</a></li>
+            </ul>
+            <div class="nav-actions">
+                <!-- زر المنيو يوجه إلى home.html -->
+                <a href="home.html" class="contact-btn btn-loader-trigger" data-target="home.html" data-text="جاري تحميل قائمة الطعام (المنيو)..."><i class="fa-solid fa-utensils"></i> المنيو</a>
+                <a href="home2.html" class="online-btn btn-loader-trigger" data-target="home2.html" data-text="جاري التحويل لنظام الطلب الأونلاين..."><i class="fa-solid fa-cart-shopping"></i> طلبات أونلاين</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero">
+        <h1>أهلاً بكم في مطعم دهب</h1>
+        <p>طعم الذهبي الأصيل - أشهى أنواع الكريب والبيتزا والبرجر المحضر بأجود المكونات الطازجة</p>
+        <div class="hero-btns">
+            <!-- زر استكشف المنيو يوجه إلى home.html -->
+            <a href="home.html" class="cta-btn btn-loader-trigger" data-target="home.html" data-text="جاري تحميل المنيو كامل..."><i class="fa-solid fa-utensils"></i> استكشف المنيو</a>
+            <a href="home2.html" class="cta-btn-online btn-loader-trigger" data-target="home2.html" data-text="جاري التوجيه للطلب أونلاين..."><i class="fa-solid fa-cart-shopping"></i> طلبات أونلاين</a>
+        </div>
+    </section>
+
+    <!-- Menu Section -->
+    <section id="menu" class="menu-section">
+        <h2 class="section-title">قائمة الطعام</h2>
+        <p class="section-subtitle">اختر وجبتك المفضلة من تشكيلتنا المميزة</p>
+
+        <!-- Crepe Category -->
+        <h3 id="crepe" class="category-title"><i class="fa-solid fa-utensils"></i> قسم الكريب</h3>
+        <div class="grid">
+            <div class="card">
+                <!-- صورة كريب زنجر الدجاج الجديدة -->
+                <img src="https://images.unsplash.com/photo-1626700051175-6818013e1d4f?q=80&w=500" alt="كريب فراخ زنجر">
+                <div class="card-content">
+                    <div class="card-title">
+                        <span>كريب زنجر دجاج</span>
+                    </div>
+                    <p class="card-desc">قطع الدجاج المقرمشة مع الجبنة الموتزاريلا والصوص الخاص</p>
+                </div>
+            </div>
+            <div class="card">
+                <!-- صورة كريب مكس لحوم الجديدة -->
+                <img src="https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=500" alt="كريب لحم">
+                <div class="card-content">
+                    <div class="card-title">
+                        <span>كريب مكس لحوم</span>
+                    </div>
+                    <p class="card-desc">خليط من السجق والبرجر والبسطرمة مع الجبنة الموتزاريلا</p>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1509722747041-616f39b57569?q=80&w=500" alt="كريب نوتيلا">
+                <div class="card-content">
+                    <div class="card-title">
+                        <span>كريب نوتيلا بالموز</span>
+                    </div>
+                    <p class="card-desc">شوكولاتة نوتيلا غنية مع قطع الموز الطازجة والمكسرات</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pizza Category -->
+        <h3 id="pizza" class="category-title"><i class="fa-solid fa-pizza-slice"></i> قسم البيتزا</h3>
+        <div class="grid">
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?q=80&w=500" alt="بيتزا مارجريتا">
+                <div class="card-content">
+                    <div class="card-title">
+                        <span>بيتزا مارجريتا</span>
+                    </div>
+                    <p class="card-desc">صلصة الطماطم الإيطالية، جبنة موتزاريلا غنية، وريحان طازج</p>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1628840042765-356cda07504e?q=80&w=500" alt="بيتزا ببروني">
+                <div class="card-content">
+                    <div class="card-title">
+                        <span>بيتزا ببروني</span>
+                    </div>
+                    <p class="card-desc">شرائح الببروني البقري مع جبنة الموتزاريلا وصلصة دهب الخاصة</p>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=500" alt="بيتزا عشاق الجبن">
+                <div class="card-content">
+                    <div class="card-title">
+                        <span>بيتزا فور تشيز</span>
+                    </div>
+                    <p class="card-desc">مزيج ساحر من 4 أنواع أجبان فاخرة (موتزاريلا، شيدر، ريكوتا، كيري)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Burger Category -->
+        <h3 id="burger" class="category-title"><i class="fa-solid fa-hamburger"></i> قسم البرجر</h3>
+        <div class="grid">
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=500" alt="برجر كلاسيك">
+                <div class="card-content">
+                    <div class="card-title">
+                        <span>كلاسيك برجر</span>
+                    </div>
+                    <p class="card-desc">شريحة لحم بقر مشوي، خس، طماطم، خيار مخلل وصوص البرجر المميز</p>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1586190848861-99aa4a171e90?q=80&w=500" alt="دبل تشيز برجر">
+                <div class="card-content">
+                    <div class="card-title">
+                        <span>دبل تشيز برجر</span>
+                    </div>
+                    <p class="card-desc">شريحتين من اللحم الصافي مع طبقات الجبن الشيدر الذائبة</p>
+                </div>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?q=80&w=500" alt="برجر دجاج مقرمش">
+                <div class="card-content">
+                    <div class="card-title">
+                        <span>كريسبي تشيكن برجر</span>
+                    </div>
+                    <p class="card-desc">صدور دجاج مقرمشة مع الصوص الحار، الجبن، والخس الطازج</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features">
+        <div class="features-container">
+            <div class="feature-box">
+                <i class="fa-solid fa-motorcycle"></i>
+                <h3>توصيل سريع</h3>
+                <p>نصلك بأسرع وقت لتبقى وجبتك ساخنة وطازجة</p>
+            </div>
+            <div class="feature-box">
+                <i class="fa-solid fa-medal"></i>
+                <h3>جودة عالية</h3>
+                <p>نستخدم أفضل وأجود المكونات واللحوم الطازجة يومياً</p>
+            </div>
+            <div class="feature-box">
+                <i class="fa-solid fa-tags"></i>
+                <h3>أفضل الأسعار</h3>
+                <p>عروض وأسعار تنافسية تناسب الجميع</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy;جميع الحقوق محفوظة - مطعم دهب  </p>
+        <div class="footer-credits">
+            <span>تصميم بواسطة</span>
+            <img src="100.png" alt="شعار التصميم">
+            <a href="tel:01010255123" class="footer-btn" title="اتصال هاتفي"><i class="fa-solid fa-phone"></i></a>
+            <a href="https://wa.me/201010255123" target="_blank" class="footer-btn" title="مراسلة عبر الواتساب"><i class="fa-brands fa-whatsapp"></i></a>
+        </div>
+    </footer>
+
+    <!-- JavaScript for Welcome & Loader Mechanism -->
+    <script>
+        const loaderOverlay = document.getElementById('loaderOverlay');
+        const counterElement = document.getElementById('counter');
+        const progressBar = document.getElementById('progressBar');
+        const loaderSubtext = document.getElementById('loaderSubtext');
+
+        // تشغيل العداد من 1 إلى 100
+        function startLoadingSequence(customText, targetUrl) {
+            if (customText) {
+                loaderSubtext.textContent = customText;
+            } else {
+                loaderSubtext.textContent = "أهلاً بك! جاري تجهيز تجربة مميزة لك...";
+            }
+
+            loaderOverlay.classList.remove('hidden');
+            let progress = 1;
+            counterElement.textContent = '1';
+            progressBar.style.width = '1%';
+
+            const interval = setInterval(() => {
+                progress += 2;
+                if (progress > 100) progress = 100;
+                
+                counterElement.textContent = progress;
+                progressBar.style.width = progress + '%';
+
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        if (targetUrl) {
+                            window.location.href = targetUrl;
+                        } else {
+                            // إذا كانت عند الفتح لأول مرة (لا يوجد رابط مستهدف) يتم إخفاء شاشة التحميل
+                            loaderOverlay.classList.add('hidden');
+                        }
+                    }, 250);
+                }
+            }, 20); // زيادة سرعة العداد بسلاسة
+        }
+
+        // 1. تشغيل رسالة الترحيب والعداد تلقائياً عند فتح الموقع لأول مرة
+        window.addEventListener('DOMContentLoaded', () => {
+            startLoadingSequence("أهلاً بك في مطعم دهب! جاري التحميل...", null);
+        });
+
+        // 2. ربط الأزرار (المنيو / طلبات أونلاين / الرئيسية) بشاشة التحميل والتحويل
+        document.querySelectorAll('.btn-loader-trigger').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                const target = this.getAttribute('data-target') || this.getAttribute('href');
+                // إذا كان الرابط يوجه لنفس الصفحة index.html، نقوم بالتحميل بدلاً من التحديث الفوري
+                if (target) {
+                    e.preventDefault();
+                    const text = this.getAttribute('data-text');
+                    startLoadingSequence(text, target);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
