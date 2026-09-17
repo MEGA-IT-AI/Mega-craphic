@@ -161,6 +161,9 @@
             transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
             position: relative;
             cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
         }
 
         .gallery-card:hover {
@@ -190,6 +193,29 @@
         .gallery-info h4 {
             color: var(--gold-light);
             font-size: 1.1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        /* زر اطلب هذا */
+        .order-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 0.6rem;
+            border-radius: 8px;
+            background-color: var(--whatsapp-color);
+            color: #FFFFFF;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            transition: background-color 0.3s ease, transform 0.2s;
+        }
+
+        .order-btn:hover {
+            background-color: #1ebd59;
+            transform: scale(1.02);
         }
 
         /* نافذة المعاينة بالكامل (Fullscreen Lightbox Modal) */
@@ -386,7 +412,7 @@
         <p>جميع الحقوق محفوظة &copy; 2026 لموقع <strong>ميجا جرافيك</strong></p>
     </footer>
 
-    <!-- السكربت لتوليد الصور والتحكم بالمعاينة الكبيرة -->
+    <!-- السكربت لتوليد الصور والتحكم بالمعاينة الكبيرة ورابط الواتساب لكل تصميم -->
     <script>
         const galleryContainer = document.getElementById('galleryContainer');
         const lightboxModal = document.getElementById('lightboxModal');
@@ -398,11 +424,19 @@
             const card = document.createElement('div');
             card.className = 'gallery-card';
             const imageSrc = `${i}.png`;
+            const fullImageUrl = window.location.origin + window.location.pathname.replace('restaurants.html', '') + imageSrc;
+            
+            // نص الرسالة الموجهة للواتساب
+            const whatsappMessage = `مرحباً ميجا جرافيك 👋\nأرغب في طلب هذا التصميم:\n📌 اسم التصميم: تصميم رقم ${i}\n🖼️ رابط الصورة: ${fullImageUrl}`;
+            const whatsappUrl = `https://wa.me/201010255123?text=${encodeURIComponent(whatsappMessage)}`;
 
             card.innerHTML = `
                 <img src="${imageSrc}" alt="نموذج ${i}" class="gallery-img" onerror="this.onerror=null; this.src='100.png';">
                 <div class="gallery-info">
                     <h4>تصميم رقم ${i}</h4>
+                    <a href="${whatsappUrl}" target="_blank" class="order-btn" onclick="event.stopPropagation();">
+                        <i class="fa-brands fa-whatsapp"></i> اطلب هذا
+                    </a>
                 </div>
             `;
 
